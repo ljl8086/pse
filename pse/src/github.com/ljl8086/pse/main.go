@@ -9,11 +9,11 @@ import (
 	"reflect"
 	"github.com/ljl8086/pse/utils"
 	"github.com/weilaihui/goconfig/config"
+	"fmt"
 //	"path"
 //	"image"
 //	_ "image/png"
 //	"image/jpeg"
-//	"fmt"
 //	"code.google.com/p/graphics-go/graphics"
 )
 
@@ -37,7 +37,13 @@ func init(){
 func route(res http.ResponseWriter, req *http.Request) {
 	req.ParseForm()
 	url := req.URL
-	if strings.HasPrefix(url.Path, "/static/") {
+	if strings.EqualFold(url.Path,"/"){
+		srcFile, err := os.Open("static/index.html")
+		if err == nil {
+			defer srcFile.Close()
+			io.Copy(res, srcFile)
+		}
+	}else if strings.HasPrefix(url.Path, "/static/") {
 		html := strings.TrimLeft(url.Path, "/")
 		srcFile, err := os.Open(html)
 		if err == nil {
@@ -56,10 +62,11 @@ func route(res http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
+	fmt.Println("Welcome to PSE world!")
 	http.HandleFunc("/", route)
 	err := http.ListenAndServe(port, nil)
 	utils.CheckError(err)
-
+	
 //	file,err := os.Open("c:/IMG_2329.JPG")
 //	utils.CheckError(err)
 //	
