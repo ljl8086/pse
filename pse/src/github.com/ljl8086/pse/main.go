@@ -8,7 +8,7 @@ import (
 	"github.com/ljl8086/pse/controls"
 	"reflect"
 	"github.com/ljl8086/pse/utils"
-	"github.com/weilaihui/goconfig/config"
+	cm "github.com/ljl8086/pse/common"
 	"fmt"
 //	"path"
 //	"image"
@@ -19,18 +19,11 @@ import (
 
 //url与执行方法的映射表。
 var routeFuncMap map[string]reflect.Value
-var port string;
 
 func init(){
 	routeFuncMap = make(map[string]reflect.Value)
 	routeFuncMap["/down"] = reflect.ValueOf(controls.Down)
 	routeFuncMap["/upload"] = reflect.ValueOf(controls.Upload)
-	
-	cf,err := config.ReadDefault("conf/pse.conf")
-	utils.CheckError(err)
-	
-	port,err = cf.RawString("web","port")
-	utils.CheckError(err)
 }
 
 //URL路由映射选择器。
@@ -64,7 +57,7 @@ func route(res http.ResponseWriter, req *http.Request) {
 func main() {
 	fmt.Println("Welcome to PSE world!")
 	http.HandleFunc("/", route)
-	err := http.ListenAndServe(port, nil)
+	err := http.ListenAndServe(cm.CfWebPort, nil)
 	utils.CheckError(err)
 	
 //	file,err := os.Open("c:/IMG_2329.JPG")

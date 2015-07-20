@@ -18,7 +18,7 @@ type FileName struct{
 func ParseFileName(s string) FileName{
 	fn := FileName{}
 	fn.Full = path.Base(s)
-	ext := path.Ext(s)
+	ext := strings.ToLower(path.Ext(s))
 	fn.Ext = strings.TrimPrefix(ext,".")
 	fn.Prefix = strings.TrimSuffix(fn.Full,ext)
 	fn.FullPath = s

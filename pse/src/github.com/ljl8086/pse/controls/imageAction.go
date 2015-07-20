@@ -1,11 +1,8 @@
 package controls
 
 import (
-	f "fmt"
 	"net/http"
-	fc "github.com/ljl8086/fdfsclient"
 	"github.com/ljl8086/pse/vo"
-	"os/signal"
 	"io"
 	"io/ioutil"
 	. "github.com/ljl8086/pse/utils"
@@ -19,18 +16,42 @@ import (
 	"strconv" 
 	"errors"
 	"time"
+	 "github.com/ljl8086/pse/db"
+	cm "github.com/ljl8086/pse/common"
+//	 "os"
 )
 
-var fdfsClient *fc.FdfsClient
+//var(
+//	FdfsClient *fc.FdfsClient
+//	cf *config.Config
+//	maxFileUploadSize = 0
+//	fileSuffixs = ""
+//	typeDeadLineMap map[string]int64
+//)
 
-func init(){
-	fclient, err := fc.NewFdfsClient("conf/client.conf")
-	if(err!=nil){
-		f.Println("fdfsClient init error!")
-		signal.Stop(nil)
-	}
-	fdfsClient = fclient
-}
+//func init(){
+//	typeDeadLineMap = make(map[string]int64)
+//	cf,err := config.ReadDefault("conf/pse.conf")
+//	maxFileUploadSize,_ = cf.Int("upload","file.maxsize")
+//	maxFileUploadSize = maxFileUploadSize * 1024 * 1024
+//	
+//	fileSuffixs,_ = cf.RawString("upload","file.suffixs")
+//	typeDeadline,_ := cf.RawString("upload","type.deadline")
+//	tdls := strings.Split(typeDeadline,",")
+//	
+//	for index:=len(tdls)-1;index>=0;index-- {
+//		 dls := strings.Split(tdls[index],":")
+//		 dl,_ := strconv.ParseInt(dls[1],10,64)
+//		 typeDeadLineMap[dls[0]] = dl
+//	}
+//	
+//	fclient, err := fc.NewFdfsClient("conf/client.conf")
+//	if(err!=nil){
+//		f.Println("fdfsClient init error!")
+//		signal.Stop(nil)
+//	}
+//	fdfsClient = fclient
+//}
 
 //文件下载接口。
 // 如果同时指定了w和h参数，将返回wxh的截图
@@ -51,12 +72,12 @@ func Down(res http.ResponseWriter, req *http.Request) {
 		}
 		tempName = Join("",tempName,".",fn.Ext)
 		
-		buf,err := fdfsClient.DownloadToBuffer(tempName,0,0)
+		buf,err := cm.FdfsClient.DownloadToBuffer(tempName,0,0)
 		if(err==nil){
 			writeFileBUfRes(res,tempName,buf.Content.([]byte))
 			return
 		}else{
-			buf,err := fdfsClient.DownloadToBuffer(imageVO.FileName,0,0)
+			buf,err := cm.FdfsClient.DownloadToBuffer(imageVO.FileName,0,0)
 			if(err!=nil){
 				Log.Error("download file has error:",err.Error())
 				io.WriteString(res,"File does not exist")
@@ -73,7 +94,7 @@ func Down(res http.ResponseWriter, req *http.Request) {
 			}
 		}
 	}else{
-		buf,err := fdfsClient.DownloadToBuffer(imageVO.FileName,0,0)
+		buf,err := cm.FdfsClient.DownloadToBuffer(imageVO.FileName,0,0)
 		if err!=nil{
 			Log.Error("download file has error:",err.Error())
 			io.WriteString(res,"File does not exist")
@@ -98,26 +119,51 @@ func logTime(msg string,t time.Time){
 func Upload(res http.ResponseWriter, req *http.Request) {
 	Log.Debug("--------------upload---------------------")
 	err := req.ParseMultipartForm(32<<40)
-	
 	if(err!=nil){
-		res.Write(makeErr("download file has error:",err))
+		res.Write(makeErr("upload file has error:",err))
+		return
+	}
+	
+	fileType := req.FormValue("type")
+	fileTypeI,_ := strconv.Atoi(fileType)
+	valTime,ok := cm.CfTypeDeadLineMap[fileType]
+	if valTime==0 {
+	 	valTime = 0xfffffffffffffff
+	}else{
+		valTime = time.Now().Unix()+valTime
+	}
+	
+	if(!ok){
+		res.Write(makeErr("upload file has error:",errors.New("Parameters in the interface can not be identified.")))
 		return
 	}
 	
 	file,handle,err := req.FormFile("file")
 	if err!=nil{
-		res.Write(makeErr("get upload file err::",err))
+		res.Write(makeErr("get upload file err:",err))
 		return
 	}
 	defer file.Close()
 	
 	fn := ParseFileName(handle.Filename)
+	if len(fn.Ext)==0 || !strings.Contains(cm.CfFileSuffixs, fn.Ext) {
+		res.Write(makeErr("upload file fail",errors.New(Join("","Only support these types of files:",cm.CfFileSuffixs))))
+		return
+	}
+	
 	buf,err := ioutil.ReadAll(file)
-	ures,err := fdfsClient.UploadByBuffer(buf,fn.Ext)
+	if len(buf) > cm.CfMaxFileUploadSize{
+		res.Write(makeErr("upload file fail",errors.New("Only support under 5 MB file")))
+		return
+	}
+	
+	ures,err := cm.FdfsClient.UploadByBuffer(buf,fn.Ext)
 	if err!=nil{
 		res.Write(makeErr("upload file to fdfs err:",err))
 		return
 	}
+	fdb := vo.FilesDB{FileName:ures.RemoteFileId, FileType:fileTypeI, Deadline:valTime, IsSlave:false}
+	db.SaveFiles(&fdb,"")
 	
 	makeSizeImg(fn.Ext,ures.RemoteFileId,buf,128,128)
 	resVO := vo.UploadResVO{Filename:ures.RemoteFileId}
@@ -162,7 +208,11 @@ func makeSizeImg(ext string,remoteFileId string,buf []byte,width,height int) (bb
 			return bbuf,err
 		}
 		
-		_,err = fdfsClient.UploadSlaveByBuffer(bbuf.Bytes(),remoteFileId,prefixName,ext)
+		ures,err :=  cm.FdfsClient.UploadSlaveByBuffer(bbuf.Bytes(),remoteFileId,prefixName,ext)
+		
+		fdb := vo.FilesDB{FileName:ures.RemoteFileId, IsSlave:true, SlaveSuffix:prefixName}
+		db.SaveFiles(&fdb, remoteFileId)
+		
 		if(err!=nil){
 			Log.Error("thumb upload err:",err)
 			return bbuf,err

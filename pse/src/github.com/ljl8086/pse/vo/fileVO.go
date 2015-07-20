@@ -12,6 +12,17 @@ type ImageVO struct{
 	Quality int	//质量:10最高
 }
 
+
+type FilesDB struct{
+	Id int
+	FileName string
+	FileType int
+	Deadline int64
+	IsSlave bool
+	SlaveSuffix string
+	ParentId int
+}
+
 func Map2Vo(m map[string][]string) ImageVO {
 	var vo  ImageVO;
 	if len(m["n"])>0{
