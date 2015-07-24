@@ -57,7 +57,7 @@ import (
 // 如果同时指定了w和h参数，将返回wxh的截图
 // 如果同时只指定w参数，将根据w进行等比缩放
 func Down(res http.ResponseWriter, req *http.Request) {
-	Log.Debug("--------------Down---------------------")
+	cm.Log.Debug("--------------Down---------------------")
 	t1 := time.Now()
 	defer logTime("down 所花时间：",t1)
 	
@@ -79,13 +79,13 @@ func Down(res http.ResponseWriter, req *http.Request) {
 		}else{
 			buf,err := cm.FdfsClient.DownloadToBuffer(imageVO.FileName,0,0)
 			if(err!=nil){
-				Log.Error("download file has error:",err.Error())
+				cm.Log.Error("download file has error:",err.Error())
 				io.WriteString(res,"File does not exist")
 				return
 			}else{
 				nbuf,err := makeSizeImg(fn.Ext,fn.FullPath,buf.Content.([]byte),imageVO.Width,imageVO.Height)
 				if(err!=nil){
-					Log.Error("缩放图片生成失败:",err.Error())
+					cm.Log.Error("缩放图片生成失败:",err.Error())
 					io.WriteString(res,"Sclae image make fail")
 				}else{
 					writeFileBUfRes(res,tempName,nbuf.Bytes())
@@ -96,7 +96,7 @@ func Down(res http.ResponseWriter, req *http.Request) {
 	}else{
 		buf,err := cm.FdfsClient.DownloadToBuffer(imageVO.FileName,0,0)
 		if err!=nil{
-			Log.Error("download file has error:",err.Error())
+			cm.Log.Error("download file has error:",err.Error())
 			io.WriteString(res,"File does not exist")
 		}else{
 			writeFileBUfRes(res,imageVO.FileName,buf.Content.([]byte))
@@ -113,11 +113,11 @@ func writeFileBUfRes(res http.ResponseWriter,fileName string,buf []byte){
 }
 
 func logTime(msg string,t time.Time){
-	Log.Debug(msg,time.Now().Sub(t).Nanoseconds()/1000000)
+	cm.Log.Debug(msg,time.Now().Sub(t).Nanoseconds()/1000000)
 }
 
 func Upload(res http.ResponseWriter, req *http.Request) {
-	Log.Debug("--------------upload---------------------")
+	cm.Log.Debug("--------------upload---------------------")
 	err := req.ParseMultipartForm(32<<40)
 	if(err!=nil){
 		res.Write(makeErr("upload file has error:",err))
@@ -183,7 +183,7 @@ func makeSizeImg(ext string,remoteFileId string,buf []byte,width,height int) (bb
 		bufRead := bytes.NewReader(buf)
 		srcImg,_,err := image.Decode(bufRead)
 		if(err!=nil){
-			Log.Error("image decode has err:",err)
+			cm.Log.Error("image decode has err:",err)
 			return bbuf,err
 		}
 		if(width>0 && height>0){
@@ -204,7 +204,7 @@ func makeSizeImg(ext string,remoteFileId string,buf []byte,width,height int) (bb
 		quality := jpeg.Options{50}
 		err = jpeg.Encode(bbuf,dstImg,&quality)
 		if(err!=nil){
-			Log.Error("thumb has err:",err)
+			cm.Log.Error("thumb has err:",err)
 			return bbuf,err
 		}
 		
@@ -214,10 +214,10 @@ func makeSizeImg(ext string,remoteFileId string,buf []byte,width,height int) (bb
 		db.SaveFiles(&fdb, remoteFileId)
 		
 		if(err!=nil){
-			Log.Error("thumb upload err:",err)
+			cm.Log.Error("thumb upload err:",err)
 			return bbuf,err
 		}
-		Log.Debug("缩略图文件已经成功产生,前缀:",prefixName,"原文件名:",remoteFileId)
+		cm.Log.Debug("缩略图文件已经成功产生,前缀:",prefixName,"原文件名:",remoteFileId)
 		return bbuf,err
 	}else{
 		err = errors.New("只支持PNG、JPG、JPEG")
@@ -227,7 +227,7 @@ func makeSizeImg(ext string,remoteFileId string,buf []byte,width,height int) (bb
 
 func makeErr(msg string,err error) []byte{
 	if len(msg)>0 {
-		Log.Error(msg,err.Error())
+		cm.Log.Error(msg,err.Error())
 	}
 	vo := vo.ResVO{Status:-998,Message:err.Error()}
 	bytes,_ := json.Marshal(vo)

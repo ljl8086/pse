@@ -3,6 +3,7 @@ package utils
 import (
 	"strings"
 	"path"
+	"strconv"
 )
 
 //文件名解析。如 /usr/abc.d.txt
@@ -28,4 +29,20 @@ func ParseFileName(s string) FileName{
 
 func Join(span string,s ...string) string{
 	return strings.Join(s,span)
+}
+
+func JoinInt(span string,s ...int) string{
+	var ss []string
+	for i:=0;i<len(s);i++ {
+		ss = append(ss,strconv.Itoa(s[i]))
+	}
+	return strings.Join(ss,span)
+}
+
+func JoinInt2(span string,s []int) string{
+	var ss []string
+	for i:=0;i<len(s);i++ {
+		ss = append(ss,strconv.Itoa(s[i]))
+	}
+	return strings.Join(ss,span)
 }
