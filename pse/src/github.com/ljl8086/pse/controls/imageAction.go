@@ -18,40 +18,7 @@ import (
 	"time"
 	 "github.com/ljl8086/pse/db"
 	cm "github.com/ljl8086/pse/common"
-//	 "os"
 )
-
-//var(
-//	FdfsClient *fc.FdfsClient
-//	cf *config.Config
-//	maxFileUploadSize = 0
-//	fileSuffixs = ""
-//	typeDeadLineMap map[string]int64
-//)
-
-//func init(){
-//	typeDeadLineMap = make(map[string]int64)
-//	cf,err := config.ReadDefault("conf/pse.conf")
-//	maxFileUploadSize,_ = cf.Int("upload","file.maxsize")
-//	maxFileUploadSize = maxFileUploadSize * 1024 * 1024
-//	
-//	fileSuffixs,_ = cf.RawString("upload","file.suffixs")
-//	typeDeadline,_ := cf.RawString("upload","type.deadline")
-//	tdls := strings.Split(typeDeadline,",")
-//	
-//	for index:=len(tdls)-1;index>=0;index-- {
-//		 dls := strings.Split(tdls[index],":")
-//		 dl,_ := strconv.ParseInt(dls[1],10,64)
-//		 typeDeadLineMap[dls[0]] = dl
-//	}
-//	
-//	fclient, err := fc.NewFdfsClient("conf/client.conf")
-//	if(err!=nil){
-//		f.Println("fdfsClient init error!")
-//		signal.Stop(nil)
-//	}
-//	fdfsClient = fclient
-//}
 
 //文件下载接口。
 // 如果同时指定了w和h参数，将返回wxh的截图
@@ -68,7 +35,7 @@ func Down(res http.ResponseWriter, req *http.Request) {
 	if(imageVO.Width>0){
 		tempName := Join("",fn.Path,"/",fn.Prefix,"_",strconv.Itoa(imageVO.Width))
 		if(imageVO.Height>0){
-			tempName = Join("","x",tempName,strconv.Itoa(imageVO.Height))
+			tempName = Join("",tempName,"x",strconv.Itoa(imageVO.Height))
 		}
 		tempName = Join("",tempName,".",fn.Ext)
 		

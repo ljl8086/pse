@@ -59,24 +59,4 @@ func main() {
 	http.HandleFunc("/", route)
 	err := http.ListenAndServe(cm.CfWebPort, nil)
 	utils.CheckError(err)
-	
-//	file,err := os.Open("c:/IMG_2329.JPG")
-//	utils.CheckError(err)
-//	
-//	src,name,err := image.Decode(file)
-//	utils.CheckError(err)
-//	fmt.Println(name)
-//	
-//	dstImg := image.NewRGBA(image.Rect(0,0,200,300))
-//	graphics.Thumbnail(dstImg,src)
-//	
-//	dstFile,err := os.OpenFile("c:/test00.png",os.O_CREATE,0777)
-//	utils.CheckError(err)
-//	
-//	quality := jpeg.Options{50}
-//	err = jpeg.Encode(dstFile,dstImg,&quality)
-//	utils.CheckError(err)
-//	
-//	fmt.Println("=============================")
-	
 }
