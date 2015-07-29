@@ -27,6 +27,15 @@ func ParseFileName(s string) FileName{
 	return fn
 }
 
+func (v *FileName) IsImg() bool {
+	var img = "jpg png jpeg bmp"
+	if len(v.Ext)==0{
+		return false
+	}
+	
+	return strings.Contains(img,v.Ext)
+}
+
 func Join(span string,s ...string) string{
 	return strings.Join(s,span)
 }

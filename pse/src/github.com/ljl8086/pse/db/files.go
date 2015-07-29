@@ -37,7 +37,7 @@ func task() {
 	
 	isTaskIng = true
 	go func() {
-		cm.Log.Debugln("Check the validity of the file...")
+		cm.Log.Debugln("Check the validity of the FDFS file...")
 		fdbs := getTimeoutFileList()
 		lenF := len(fdbs)
 		var ids []int
@@ -56,20 +56,24 @@ func getTimeoutFileList() []vo.FilesDB{
 	var fdbs []vo.FilesDB
 	stmt, err := cm.Db.Prepare(" INSERT INTO lock_files(files_id,locked_ip) SELECT f.id,? FROM files f LEFT JOIN lock_files lf ON f.id = lf.files_id WHERE f.deadline<UNIX_TIMESTAMP(NOW()) AND lf.files_id IS NULL limit 0,3")
 	if makeErr(errStr, err) {
+		stmt.Close()
 		return fdbs
 	}
 	_, err = stmt.Exec(cm.CfWebPort)
+	stmt.Close()
 	if makeErr(errStr, err) {
 		return fdbs
 	}
 
 	stmt, err = cm.Db.Prepare("SELECT f.id,f.file_name FROM files f JOIN lock_files lf ON f.id = lf.files_id AND lf.locked_ip=?")
 	if makeErr(errStr, err) {
+		stmt.Close()
 		return fdbs
 	}
 
 	row, err := stmt.Query(cm.CfWebPort)
 	if makeErr(errStr, err) {
+		stmt.Close()
 		return fdbs
 	}
 
@@ -78,6 +82,7 @@ func getTimeoutFileList() []vo.FilesDB{
 		row.Scan(&fdb.Id, &fdb.FileName)
 		fdbs = append(fdbs,fdb)
 	}
+	stmt.Close()
 	return fdbs
 }
 
@@ -94,6 +99,8 @@ func SaveFiles(fdb *vo.FilesDB, mFileName string) {
 	}
 
 	stmt, err := cm.Db.Prepare("insert into files(file_name,type,deadline,is_slave,slave_suffix,parent_id) value(?,?,?,?,?,?)")
+	defer stmt.Close()
+	
 	if makeErr(errStr, err) {
 		return
 	}
@@ -119,6 +126,8 @@ func deleteFiles(ids []int){
 	idsStr := JoinInt2(",",ids)
 	sql := Join("","delete from files where id in(",idsStr,")")
 	stmt,err := cm.Db.Prepare(sql)
+	defer stmt.Close()
+	
  	if makeErr(errStr, err) {
  		tx.Rollback();
 		return
@@ -145,6 +154,8 @@ func deleteFiles(ids []int){
 func getFiles(filename string) (*vo.FilesDB, error) {
 	var fdb vo.FilesDB
 	stmt, err := cm.Db.Prepare("SELECT id,file_name,type,deadline,is_slave,slave_suffix,parent_id FROM files WHERE file_name=?")
+	defer stmt.Close()
+	
 	if err != nil {
 		return nil, err
 	}

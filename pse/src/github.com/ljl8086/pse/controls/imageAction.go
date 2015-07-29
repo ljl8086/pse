@@ -19,6 +19,15 @@ import (
 	 "github.com/ljl8086/pse/db"
 	cm "github.com/ljl8086/pse/common"
 )
+var(
+	picNotExistShowJpgBuf []byte
+)
+
+func init(){
+	var err error
+	picNotExistShowJpgBuf,err = ioutil.ReadFile("static/images/picNotExistShowJpg.jpg")
+	CheckError(err)
+}
 
 //文件下载接口。
 // 如果同时指定了w和h参数，将返回wxh的截图
@@ -32,7 +41,7 @@ func Down(res http.ResponseWriter, req *http.Request) {
 	imageVO := vo.Map2Vo(req.Form);
 	fn := ParseFileName(imageVO.FileName)
 	
-	if(imageVO.Width>0){
+	if(fn.IsImg() && imageVO.Width>0){
 		tempName := Join("",fn.Path,"/",fn.Prefix,"_",strconv.Itoa(imageVO.Width))
 		if(imageVO.Height>0){
 			tempName = Join("",tempName,"x",strconv.Itoa(imageVO.Height))
@@ -47,7 +56,7 @@ func Down(res http.ResponseWriter, req *http.Request) {
 			buf,err := cm.FdfsClient.DownloadToBuffer(imageVO.FileName,0,0)
 			if(err!=nil){
 				cm.Log.Error("download file has error:",err.Error())
-				io.WriteString(res,"File does not exist")
+				writeFileBUfRes(res,tempName,picNotExistShowJpgBuf)
 				return
 			}else{
 				nbuf,err := makeSizeImg(fn.Ext,fn.FullPath,buf.Content.([]byte),imageVO.Width,imageVO.Height)
@@ -64,7 +73,11 @@ func Down(res http.ResponseWriter, req *http.Request) {
 		buf,err := cm.FdfsClient.DownloadToBuffer(imageVO.FileName,0,0)
 		if err!=nil{
 			cm.Log.Error("download file has error:",err.Error())
-			io.WriteString(res,"File does not exist")
+			if(fn.IsImg()){
+				writeFileBUfRes(res,imageVO.FileName,picNotExistShowJpgBuf)
+			}else{
+				io.WriteString(res,"File does not exist")
+			}
 		}else{
 			writeFileBUfRes(res,imageVO.FileName,buf.Content.([]byte))
 		}
@@ -176,14 +189,14 @@ func makeSizeImg(ext string,remoteFileId string,buf []byte,width,height int) (bb
 		}
 		
 		ures,err :=  cm.FdfsClient.UploadSlaveByBuffer(bbuf.Bytes(),remoteFileId,prefixName,ext)
-		
-		fdb := vo.FilesDB{FileName:ures.RemoteFileId, IsSlave:true, SlaveSuffix:prefixName}
-		db.SaveFiles(&fdb, remoteFileId)
-		
 		if(err!=nil){
 			cm.Log.Error("thumb upload err:",err)
 			return bbuf,err
 		}
+		
+		fdb := vo.FilesDB{FileName:ures.RemoteFileId, IsSlave:true, SlaveSuffix:prefixName}
+		db.SaveFiles(&fdb, remoteFileId)
+		
 		cm.Log.Debug("缩略图文件已经成功产生,前缀:",prefixName,"原文件名:",remoteFileId)
 		return bbuf,err
 	}else{

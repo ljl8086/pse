@@ -12,7 +12,6 @@ type ImageVO struct{
 	Quality int	//质量:10最高
 }
 
-
 type FilesDB struct{
 	Id int
 	FileName string
