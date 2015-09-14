@@ -1,0 +1,20 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>文件上传测试</title>
+</head>
+<body>
+	<form action="/upload" method="post" enctype="multipart/form-data">
+		<label>上传文件：</label><input id="file" name="file" type="file" /><br>
+		<label>文件类型：</label>
+		<label>动态</label><input name="type" type="radio" value="0" /> 
+		<label>新闻</label><input name="type" type="radio" value="1" /> 
+		<label>用户</label><input name="type" type="radio" value="2" /> 
+		<label>单聊</label><input name="type" type="radio" value="3" /> 
+		<label>群聊</label><input name="type" type="radio" value="4" /><br> 
+		
+		<input type="submit" name="Button1" value="上传" />
+	</form>
+</body>
+</html>
